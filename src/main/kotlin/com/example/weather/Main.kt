@@ -6,7 +6,7 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,19 +46,16 @@ suspend fun fetchWeather(client: HttpClient, city: String, apiKey: String): Weat
         parameter("lang", "pt")
     }.body()
 
-suspend fun loadIconBitmap(client: HttpClient, iconCode: String): ImageBitmap? = try {
-    val bytes = client.get("https://openweathermap.org/img/wn/${iconCode}@2x.png").body<ByteArray>()
-    val bimg = ImageIO.read(ByteArrayInputStream(bytes))
-    bimg?.asImageBitmap()
-} catch (e: Exception) {
-    null
+suspend fun loadIconBitmap(client: HttpClient, iconCode: String): ImageBitmap? {
+    // icon loading disabled for quick local run (convert via Skiko if needed).
+    return null
 }
 
 @Composable
 fun WeatherWidget(temp: String, desc: String, lastUpdate: String, icon: ImageBitmap?, onOpenSettings: () -> Unit) {
     Surface(
         modifier = Modifier.padding(8.dp),
-        tonalElevation = 6.dp,
+        elevation = 6.dp,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -67,11 +64,11 @@ fun WeatherWidget(temp: String, desc: String, lastUpdate: String, icon: ImageBit
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Column(horizontalAlignment = Alignment.Start) {
-                Text(text = temp, style = MaterialTheme.typography.headlineMedium)
+                Text(text = temp, style = MaterialTheme.typography.h4)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = desc.replaceFirstChar { it.titlecase() }, style = MaterialTheme.typography.bodyLarge)
+                Text(text = desc.replaceFirstChar { it.titlecase() }, style = MaterialTheme.typography.body1)
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(text = "Atualizado: $lastUpdate", style = MaterialTheme.typography.labelSmall)
+                Text(text = "Atualizado: $lastUpdate", style = MaterialTheme.typography.caption)
             }
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onOpenSettings) {
@@ -112,18 +109,28 @@ fun App(apiKeyEnv: String, initialCity: String, intervalSec: Long) {
 
     LaunchedEffect(city, interval, apiKeyEnv) {
         val apiKey = apiKeyEnv
+        val mock = System.getenv("WEATHER_MOCK")?.lowercase()?.let { it == "1" || it == "true" } ?: false
         while (true) {
             try {
-                val w = fetchWeather(client, city, apiKey)
-                temp = "${"%.1f".format(w.main.temp)}°C"
-                desc = w.weather.firstOrNull()?.description ?: ""
-                val code = w.weather.firstOrNull()?.icon
-                if (code != null) iconCode = code
-                lastUpdate = DateTimeFormatter.ofPattern("HH:mm:ss")
-                    .withZone(ZoneId.systemDefault())
-                    .format(Instant.now())
+                if (mock) {
+                    // Simulated data for demo
+                    temp = "23.4°C"
+                    desc = "Ensolarado"
+                    lastUpdate = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault()).format(Instant.now())
+                } else {
+                    val w = fetchWeather(client, city, apiKey)
+                    temp = "${"%.1f".format(w.main.temp)}°C"
+                    desc = w.weather.firstOrNull()?.description ?: ""
+                    val code = w.weather.firstOrNull()?.icon
+                    if (code != null) iconCode = code
+                    lastUpdate = DateTimeFormatter.ofPattern("HH:mm:ss")
+                        .withZone(ZoneId.systemDefault())
+                        .format(Instant.now())
+                }
             } catch (e: Exception) {
-                desc = "erro ao buscar"
+                desc = "erro ao buscar: ${e.message}"
+                println("[WeatherWidget] falha ao buscar clima: ${e::class.java.name} - ${e.message}")
+                e.printStackTrace()
             }
             delay(interval * 1000)
         }
@@ -135,7 +142,7 @@ fun App(apiKeyEnv: String, initialCity: String, intervalSec: Long) {
 
             if (showSettings) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Surface(tonalElevation = 4.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(0.9f)) {
+                Surface(elevation = 4.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(0.9f)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Cidade") })
                         Spacer(modifier = Modifier.height(8.dp))
@@ -194,7 +201,7 @@ fun App(apiKeyEnv: String, initialCity: String, intervalSec: Long) {
                             }
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                        if (statusMsg.isNotEmpty()) Text(statusMsg, style = MaterialTheme.typography.labelSmall)
+                        if (statusMsg.isNotEmpty()) Text(statusMsg, style = MaterialTheme.typography.caption)
                     }
                 }
             }
@@ -203,9 +210,15 @@ fun App(apiKeyEnv: String, initialCity: String, intervalSec: Long) {
 }
 
 fun main() = application {
-    val apiKey = System.getenv("OPENWEATHER_API_KEY") ?: run {
-        println("ERROR: set OPENWEATHER_API_KEY in environment")
-        return@application
+    val mockMode = System.getenv("WEATHER_MOCK")?.lowercase()?.let { it == "1" || it == "true" } ?: false
+    val apiKey = if (mockMode) {
+        println("[WeatherWidget] running in MOCK mode")
+        System.getenv("OPENWEATHER_API_KEY") ?: ""
+    } else {
+        System.getenv("OPENWEATHER_API_KEY") ?: run {
+            println("ERROR: set OPENWEATHER_API_KEY in environment or set WEATHER_MOCK=1 to run mock")
+            return@application
+        }
     }
     val city = System.getenv("WEATHER_CITY") ?: "São Paulo"
     val interval = (System.getenv("WEATHER_UPDATE_INTERVAL")?.toLongOrNull() ?: 60L)

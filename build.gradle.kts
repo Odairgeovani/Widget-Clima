@@ -20,17 +20,10 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.example.weather.MainKt"
-        nativeDistributions {
-            targetFormats(org.jetbrains.compose.desktop.application.dsl.NativeTargetFormat.Dmg)
-            packageName = "WeatherWidget"
-            macOS {
-                bundleID = "com.example.weatherwidget"
-                packageVersion = "1.0.0"
-            }
-        }
+        // nativeDistributions removed for faster dev run; re-add for packaging
     }
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
