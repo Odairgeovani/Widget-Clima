@@ -6,11 +6,19 @@ set -euo pipefail
 # or
 #  export OPENWEATHER_API_KEY="..." && ./run.sh
 
-APP_PATH="./build/compose/binaries/main/app/WeatherWidget.app"
+APP_PATH="$HOME/Applications/WeatherWidget.app"
+FALLBACK_APP_PATH="./build/compose/binaries/main/app/WeatherWidget.app"
 
 if [ ! -d "$APP_PATH" ]; then
-  echo "Erro: app não encontrado em $APP_PATH. Execute 'gradle createDistributable' primeiro."
-  exit 1
+  if [ -d "$FALLBACK_APP_PATH" ]; then
+    APP_PATH="$FALLBACK_APP_PATH"
+  else
+    echo "Erro: app não encontrado em:"
+    echo " - $APP_PATH"
+    echo " - $FALLBACK_APP_PATH"
+    echo "Copie o WeatherWidget.app para ~/Applications ou rode 'gradle createDistributable' primeiro."
+    exit 1
+  fi
 fi
 
 API_KEY="${1:-${OPENWEATHER_API_KEY:-}}"
