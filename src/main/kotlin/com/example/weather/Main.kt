@@ -14,6 +14,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import io.ktor.client.*
@@ -54,29 +60,47 @@ suspend fun loadIconBitmap(client: HttpClient, iconCode: String): ImageBitmap? {
 @Composable
 fun WeatherWidget(temp: String, desc: String, lastUpdate: String, icon: ImageBitmap?, onOpenSettings: () -> Unit) {
     Surface(
-        modifier = Modifier.padding(8.dp),
+        modifier = Modifier
+            .padding(6.dp)
+            .clip(RoundedCornerShape(14.dp)),
         elevation = 6.dp,
-        shape = MaterialTheme.shapes.medium
+        shape = RoundedCornerShape(14.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) {
-                Image(bitmap = icon, contentDescription = null, modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.width(8.dp))
+        Row(modifier = Modifier
+            .padding(8.dp)
+            .heightIn(min = 72.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF0F0F5)),
+                contentAlignment = Alignment.Center) {
+                if (icon != null) {
+                    Image(bitmap = icon, contentDescription = null, modifier = Modifier.size(28.dp))
+                } else {
+                    Text(text = "☀", fontSize = 18.sp)
+                }
             }
+            Spacer(modifier = Modifier.width(10.dp))
             Column(horizontalAlignment = Alignment.Start) {
-                Text(text = temp, style = MaterialTheme.typography.h4)
+                Text(text = temp, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1C1C1E))
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = desc.replaceFirstChar { it.titlecase() }, style = MaterialTheme.typography.body2, color = Color(0xFF3C3C43), maxLines = 1)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = desc.replaceFirstChar { it.titlecase() }, style = MaterialTheme.typography.body1)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(text = "Atualizado: $lastUpdate", style = MaterialTheme.typography.caption)
+                Text(text = lastUpdate, style = MaterialTheme.typography.caption, color = Color(0xFF6C6C70))
             }
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onOpenSettings) {
-                Text("⚙")
+            Box(modifier = Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFFF2F2F7))
+                .clickable { onOpenSettings() },
+                contentAlignment = Alignment.Center) {
+                Text("⚙", fontSize = 14.sp)
             }
         }
     }
-}
+}  
 
 @Composable
 @Preview
@@ -137,39 +161,47 @@ fun App(apiKeyEnv: String, initialCity: String, intervalSec: Long) {
     }
 
     MaterialTheme {
-        Column(modifier = Modifier.padding(8.dp)) {
+        Column(modifier = Modifier
+            .padding(6.dp)
+            .width(260.dp)) {
             WeatherWidget(temp, desc, lastUpdate, iconBitmap) { showSettings = true }
 
             if (showSettings) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(elevation = 4.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(0.9f)) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Cidade") })
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(value = interval.toString(), onValueChange = { v -> interval = v.toLongOrNull() ?: interval }, label = { Text("Intervalo (s)") })
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row {
-                            Button(onClick = {
-                                prefs.put("city", city)
-                                prefs.putLong("intervalSec", interval)
-                                statusMsg = "Configurações salvas"
-                                showSettings = false
-                            }) {
-                                Text("Salvar")
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                    Surface(elevation = 12.dp, shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp), modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 160.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Box(modifier = Modifier
+                                .fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Box(modifier = Modifier
+                                    .width(36.dp)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color(0xFFDDDDDD)))
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(onClick = {
-                                showSettings = false
-                            }) {
-                                Text("Fechar")
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(onClick = {
-                                // try to install LaunchAgent for autostart
-                                try {
-                                    val appPath = "/Applications/WeatherWidget.app"
-                                    val la = java.nio.file.Paths.get(System.getProperty("user.home"), "Library", "LaunchAgents", "com.example.weatherwidget.plist")
-                                    val plist = """<?xml version="1.0" encoding="UTF-8"?>
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Cidade") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(value = interval.toString(), onValueChange = { v -> interval = v.toLongOrNull() ?: interval }, label = { Text("Intervalo (s)") }, modifier = Modifier.fillMaxWidth())
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                                Button(onClick = {
+                                    prefs.put("city", city)
+                                    prefs.putLong("intervalSec", interval)
+                                    statusMsg = "Configurações salvas"
+                                    showSettings = false
+                                }) {
+                                    Text("Salvar")
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Button(onClick = {
+                                    // try to install LaunchAgent for autostart
+                                    try {
+                                        val appPath = "/Applications/WeatherWidget.app"
+                                        val la = java.nio.file.Paths.get(System.getProperty("user.home"), "Library", "LaunchAgents", "com.example.weatherwidget.plist")
+                                        val plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -184,24 +216,31 @@ fun App(apiKeyEnv: String, initialCity: String, intervalSec: Long) {
 </dict>
 </plist>
 """
-                                    java.nio.file.Files.createDirectories(la.parent)
-                                    java.nio.file.Files.writeString(la, plist)
-                                    // try to load
-                                    val proc = ProcessBuilder("launchctl", "unload", la.toString()).inheritIO().start()
-                                    proc.waitFor()
-                                    val p2 = ProcessBuilder("launchctl", "load", "-w", la.toString()).inheritIO().start()
-                                    p2.waitFor()
-                                    autostartEnabled = true
-                                    statusMsg = "Autostart instalado (verifique se o .app está em /Applications)"
-                                } catch (e: Exception) {
-                                    statusMsg = "Falha ao instalar autostart: ${e.message}"
+                                        java.nio.file.Files.createDirectories(la.parent)
+                                        java.nio.file.Files.writeString(la, plist)
+                                        // try to load
+                                        val proc = ProcessBuilder("launchctl", "unload", la.toString()).inheritIO().start()
+                                        proc.waitFor()
+                                        val p2 = ProcessBuilder("launchctl", "load", "-w", la.toString()).inheritIO().start()
+                                        p2.waitFor()
+                                        autostartEnabled = true
+                                        statusMsg = "Autostart instalado (verifique se o .app está em /Applications)"
+                                    } catch (e: Exception) {
+                                        statusMsg = "Falha ao instalar autostart: ${e.message}"
+                                    }
+                                }) {
+                                    Text("Instalar autostart")
                                 }
-                            }) {
-                                Text("Instalar autostart")
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Button(onClick = {
+                                    showSettings = false
+                                }) {
+                                    Text("Fechar")
+                                }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            if (statusMsg.isNotEmpty()) Text(statusMsg, style = MaterialTheme.typography.caption)
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        if (statusMsg.isNotEmpty()) Text(statusMsg, style = MaterialTheme.typography.caption)
                     }
                 }
             }

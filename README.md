@@ -19,10 +19,26 @@ export OPENWEATHER_API_KEY="sua_api_key"
 export WEATHER_CITY="São Paulo"
 ```
 
-2. Execute:
+2. Execute (modo desenvolvimento):
 
 ```bash
 ./gradlew run
+```
+
+Script para abrir a app (útil no macOS quando abrir pelo Finder fecha por não ter a env definida). Depois de empacotar (ou se já tiver `WeatherWidget.app` em `build/compose/binaries/main/app`), use:
+
+```bash
+# passe a chave como primeiro argumento, ou use a env
+./run.sh <OPENWEATHER_API_KEY>
+# ou
+export OPENWEATHER_API_KEY="sua_api_key"
+./run.sh
+```
+
+O script usa `launchctl setenv` para garantir que apps GUI vejam a variável `OPENWEATHER_API_KEY`. Para remover a variável depois, rode:
+
+```bash
+launchctl unsetenv OPENWEATHER_API_KEY
 ```
 
 ## UI e configurações
