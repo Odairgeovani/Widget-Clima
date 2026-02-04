@@ -20,7 +20,11 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.example.weather.MainKt"
-        // nativeDistributions removed for faster dev run; re-add for packaging
+        nativeDistributions {
+            macOS {
+                iconFile.set(project.file("src/main/resources/WeatherWidget.icns"))
+            }
+        }
     }
 }
 
